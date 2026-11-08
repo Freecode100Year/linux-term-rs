@@ -1,0 +1,19 @@
+[package]
+name = "linux-term-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Freecode100Year"]
+description = "A portable, zero-dependency modern Linux terminal and POSIX shell in Rust."
+license = "MIT"
+
+[dependencies]
+libc = "0.2"
+rustyline = "14.0"
+dirs = "5.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

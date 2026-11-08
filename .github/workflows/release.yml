@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            arch: x86_64
+          - target: aarch64-unknown-linux-musl
+            arch: aarch64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Cross Compiler
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build Binary
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Package Release Assets
+        shell: bash
+        run: |
+          BIN_NAME="linux-term-rs"
+          TAG_NAME="${{ github.ref_name }}"
+          ASSET_NAME="${BIN_NAME}-${TAG_NAME}-${{ matrix.arch }}-unknown-linux-musl"
+          
+          mkdir -p "dist/${ASSET_NAME}"
+          cp "target/${{ matrix.target }}/release/${BIN_NAME}" "dist/${ASSET_NAME}/"
+          cp README.md LICENSE "dist/${ASSET_NAME}/" 2>/dev/null || true
+          
+          cd dist
+          tar -czvf "${ASSET_NAME}.tar.gz" "${ASSET_NAME}"
+          sha256sum "${ASSET_NAME}.tar.gz" > "${ASSET_NAME}.tar.gz.sha256"
+          
+          echo "ASSET_ARCHIVE=dist/${ASSET_NAME}.tar.gz" >> $GITHUB_ENV
+          echo "ASSET_CHECKSUM=dist/${ASSET_NAME}.tar.gz.sha256" >> $GITHUB_ENV
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ASSET_ARCHIVE }}
+            ${{ env.ASSET_CHECKSUM }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

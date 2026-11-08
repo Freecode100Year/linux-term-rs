@@ -1,0 +1,5 @@
+/target
+/dist
+*.tar.gz
+*.sha256
+.linux_term_rs_history
