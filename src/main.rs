@@ -67,7 +67,7 @@ fn sync_window_size(master_fd: c_int) {
 /// 运行需要全屏接管的交互程序 (vim, htop, ssh, less, nano)
 fn run_full_pty_session(program: &str, args: &[&str]) -> io::Result<i32> {
     let mut master_fd: c_int = 0;
-    let mut ws: winsize = mem::zeroed();
+    let mut ws: winsize = unsafe { mem::zeroed() };
 
     unsafe {
         ioctl(STDOUT_FILENO, TIOCGWINSZ, &mut ws);
